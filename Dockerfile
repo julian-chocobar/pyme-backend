@@ -1,5 +1,5 @@
-# Usamos una imagen base con Python 3.9 y herramientas de compilación
-FROM python:3.9-slim
+# Usamos una versión específica de Python 3.9 para asegurar compatibilidad
+FROM python:3.9.18-slim-bullseye
 
 # Instalar dependencias del sistema necesarias para compilar dlib
 RUN apt-get update && apt-get install -y \

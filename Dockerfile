@@ -1,10 +1,16 @@
-# Usamos una imagen base con Python 3.9
+# Usamos una imagen base con Python 3.9 y herramientas de compilación
 FROM python:3.9-slim
 
-# Instalar dependencias del sistema necesarias para face-recognition
+# Instalar dependencias del sistema necesarias para compilar dlib
 RUN apt-get update && apt-get install -y \
-    libdlib19 \
+    build-essential \
+    cmake \
+    libopenblas-dev \
+    liblapack-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Instalar dlib desde el código fuente
+RUN pip install --no-cache-dir dlib
 
 # Establecer el directorio de trabajo
 WORKDIR /app

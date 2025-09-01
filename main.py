@@ -17,7 +17,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://pyme-frontend-smoky.vercel.app", "http://localhost:5173,http://localhost:3000,http://localhost:8080"],
     allow_credentials=True,
     allow_methods=["*"],             # Permite todos los métodos HTTP
     allow_headers=["*"],             # Permite todos los headers

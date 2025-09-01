@@ -29,6 +29,14 @@ app.add_middleware(
     allow_headers=["*"],             # Permite todos los headers
 )
 
+# Middleware de debug para registrar el origen de las peticiones
+@app.middleware("http")
+async def log_request(request: Request, call_next):
+    origin = request.headers.get("origin")
+    print(f"[DEBUG] Request Origin: {origin} - {request.method} {request.url}")
+    response = await call_next(request)
+    return response
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL is None:

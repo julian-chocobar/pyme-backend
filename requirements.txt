@@ -5,14 +5,19 @@ uvicorn==0.22.0
 # Face recognition and image processing
 face-recognition==1.3.0
 numpy==1.24.3
+Pillow==9.5.0
 
 # Database dependencies
 databases[postgresql]==0.6.2
-sqlalchemy==1.4.49
+sqlalchemy==1.4.41  # Versión específica compatible con databases 0.6.2
 
 # Data validation
 pydantic==1.10.7
 
 # File upload and environment
 python-multipart==0.0.6
+
+# Dependencias adicionales
+anyio==3.6.2  # Requerido por starlette
+starlette==0.27.0  # Versión específica para compatibilidad
 python-dotenv==1.0.0

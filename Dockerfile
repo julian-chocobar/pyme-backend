@@ -1,9 +1,10 @@
 # Etapa 1: Build - Instalar dependencias del sistema y de Python
-FROM python:3.9-slim as builder
+FROM python:3.9-slim-bullseye as builder
 
 # Actualizar e instalar dependencias del sistema necesarias para compilar dlib (para face_recognition)
-# Esto puede tardar varios minutos la primera vez que se construye.
-RUN apt-get update && apt-get install -y \
+# Usamos bullseye-backports para obtener versiones más recientes de las dependencias
+RUN echo 'deb http://deb.debian.org/debian bullseye-backports main' > /etc/apt/sources.list.d/backports.list && \
+    apt-get update && apt-get install -y \
     build-essential \
     cmake \
     libdlib-dev \
@@ -19,10 +20,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Etapa 2: Final - Crear la imagen de producción, más ligera
-FROM python:3.9-slim
+FROM python:3.9-slim-bullseye
 
-# Instalar solo las librerías de sistema necesarias para EJECUTAR la aplicación, no para compilarla
-RUN apt-get update && apt-get install -y \
+# Instalar solo las librerías de sistema necesarias para EJECUTAR la aplicación
+# Usamos la misma versión de Debian que en la etapa de construcción
+RUN echo 'deb http://deb.debian.org/debian bullseye-backports main' > /etc/apt/sources.list.d/backports.list && \
+    apt-get update && apt-get install -y \
     libdlib1 \
     && rm -rf /var/lib/apt/lists/*
 

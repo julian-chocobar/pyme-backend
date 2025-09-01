@@ -15,15 +15,9 @@ load_dotenv()
 
 app = FastAPI()
 
-# Configuración CORS para permitir peticiones desde el frontend
-# Obtener orígenes permitidos desde variables de entorno
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000,http://localhost:8080")
-# Convertir string a lista
-allowed_origins_list = [origin.strip() for origin in ALLOWED_ORIGINS.split(",")]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins_list,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],             # Permite todos los métodos HTTP
     allow_headers=["*"],             # Permite todos los headers

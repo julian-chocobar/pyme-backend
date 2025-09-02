@@ -19,17 +19,20 @@ Este es un backend desarrollado en FastAPI que implementa un sistema de control 
 ## Instalación
 
 1. **Clonar el repositorio**:
+
 ```bash
 git clone <url-del-repositorio>
 cd pyme-backend
 ```
 
 2. **Crear entorno virtual**:
+
 ```bash
 python -m venv venv
 ```
 
 3. **Activar entorno virtual**:
+
 ```bash
 # En Windows (PowerShell):
 venv\Scripts\Activate.ps1
@@ -40,6 +43,7 @@ source venv/bin/activate
 ```
 
 4. **Instalar dependencias**:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -47,21 +51,21 @@ pip install -r requirements.txt
 **Nota**: La instalación puede tomar varios minutos debido a las dependencias de machine learning (dlib, face_recognition, numpy) que se instalan automáticamente.
 
 5. **Configurar variables de entorno**:
-Crear archivo `.env` en la raíz del proyecto:
+   Crear archivo `.env` en la raíz del proyecto:
+
 ```env
 # Base de datos
 DATABASE_URL=postgresql://usuario:password@localhost:5432/nombre_db
 
-# Configuración CORS (orígenes permitidos separados por comas)
-ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:8080
 ```
-
 6. **Crear base de datos y tablas**:
+
 ```bash
 python create_tables.py
 ```
 
 7. **Ejecutar la aplicación**:
+
 ```bash
 python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -72,6 +76,7 @@ Documentación automática de la API: `http://localhost:8000/docs`
 ## Solución de Problemas Comunes
 
 ### Error al instalar dlib o face_recognition
+
 ```bash
 # En Windows, instalar Visual Studio Build Tools primero
 # En Linux/Mac, instalar dependencias del sistema:
@@ -80,27 +85,23 @@ brew install cmake  # macOS
 ```
 
 ### Error de conexión a PostgreSQL
+
 - Verificar que PostgreSQL esté ejecutándose
 - Confirmar que la URL de conexión en `.env` sea correcta
 - Verificar que la base de datos exista
 
-
-### Error de CORS (Cross-Origin Resource Sharing)
-- Verificar que el dominio del frontend esté incluido en `ALLOWED_ORIGINS`
-- Asegurar que las URLs en `ALLOWED_ORIGINS` no tengan espacios
-- Para desarrollo, incluir `http://localhost:PUERTO` en la configuración
-
 ## Estructura de la Base de Datos
 
 ### Tabla: areas
+
 - `AreaID` : ID único del área
 - `Nombre` : Nombre del área
 - `NivelAcceso` : Nivel de acceso en enteros (1-4)
 - `Descripcion` : Breve descripción del área
 - `Estado` : Activo o Inactivo
 
-
 ### Tabla: empleados
+
 - `EmpleadoID`: ID único del empleado
 - `Nombre`: Nombre del empleado
 - `Apellido`: Apellido del empleado
@@ -114,6 +115,7 @@ brew install cmake  # macOS
 - `FechaRegistro`: Fecha de registro en el sistema
 
 ### Tabla: accesos
+
 - `AccesoID`: ID único del acceso
 - `EmpleadoID`: ID del empleado (puede ser NULL si acceso denegado)
 - `AreaID`: ID del área donde se intentó el acceso
@@ -131,11 +133,17 @@ brew install cmake  # macOS
 
 ### Empleados
 
-#### GET `/empleados/
-Obtiene información de todos los empleados.
+#### GET `/empleados`
+
+Obtiene información de todos los empleados. 
+
+**Nota**: Este endpoint devuelve solo la información básica de los empleados, sin datos sensibles.
+
 **Respuesta**:
+
 ```json
-{
+[
+    {
         "EmpleadoID": 1,
         "Nombre": "Juan",
         "Apellido": "Perez",
@@ -144,8 +152,7 @@ Obtiene información de todos los empleados.
         "Email": "juan.perez@example.com",
         "Rol": "Operario",
         "EstadoEmpleado": "Activo",
-        "AreaID": 101,
-        "DatosBiometricos": null,
+        "AreaID": "AREA001",
         "FechaRegistro": "2025-08-31T18:50:38.382434"
     },
     {
@@ -157,53 +164,110 @@ Obtiene información de todos los empleados.
         "Email": "maria.gomez@example.com",
         "Rol": "Supervisor",
         "EstadoEmpleado": "Activo",
-        "AreaID": 102,
-        "DatosBiometricos": null,
+        "AreaID": "AREA002",
         "FechaRegistro": "2025-08-31T18:50:38.384872"
     }
+]
 ```
 
-
 #### GET `/empleados/{empleado_id}`
-Obtiene información de un empleado específico.
+
+Obtiene información básica de un empleado específico sin datos sensibles.
 
 **Parámetros**:
-- `empleado_id` (path): ID del empleado
+
+- `empleado_id` (path): ID numérico del empleado
 
 **Respuesta**:
+
 ```json
 {
   "EmpleadoID": 1,
   "Nombre": "Juan",
   "Apellido": "Perez",
   "DNI": "12345678",
+  "FechaNacimiento": "1980-01-01",
   "Email": "juan.perez@example.com",
   "Rol": "Operario",
   "EstadoEmpleado": "Activo",
-  "AreaID": 101
+  "AreaID": "AREA001",
+  "FechaRegistro": "2025-08-31T18:50:38.382434"
 }
 ```
 
-#### POST `/empleados/{empleado_id}/registrar_rostro`
-Registra el rostro de un empleado para reconocimiento facial.
+#### POST `/empleados/crear`
 
-**Parámetros**:
-- `empleado_id` (path): ID del empleado
-- `file` (form): Imagen del rostro
+Crea un nuevo empleado en la base de datos. Los IDs se generan automáticamente de forma incremental.
 
-**Respuesta**:
+**Parámetros (Body JSON)**:
+
 ```json
 {
-  "message": "Rostro registrado correctamente"
+  "Nombre": "Juan",
+  "Apellido": "Perez",
+  "DNI": "12345678A",
+  "FechaNacimiento": "1990-05-15",
+  "Email": "juan.perez@example.com",
+  "Rol": "Operario",
+  "EstadoEmpleado": "Activo",
+  "AreaID": "AREA001",
+  "PIN": "1234"
 }
 ```
+
+**Validaciones:**
+
+- PIN puede ser opcional
+- DNI y Email deben ser únicos.
+- AreaID debe existir en la tabla areas.
+
+**Respuesta**:
+
+```json
+{
+  "message": "Empleado creado correctamente",
+  "EmpleadoID": 3
+}
+```
+
+#### DELETE `/empleados/{empleado_id}`
+
+Elimina un empleado del sistema. Este proceso también elimina todos los registros de accesos asociados al empleado.
+
+**Parámetros**:
+
+- `empleado_id` (path): ID numérico del empleado a eliminar
+
+**Respuesta**:
+
+```json
+{
+  "message": "Empleado eliminado correctamente",
+  "empleado_eliminado": {
+    "EmpleadoID": 1,
+    "Nombre": "Juan",
+    "Apellido": "Perez",
+    "DNI": "12345678",
+    "FechaNacimiento": "1980-01-01",
+    "Email": "juan.perez@example.com",
+    "Rol": "Operario",
+    "EstadoEmpleado": "Activo",
+    "AreaID": "AREA001",
+    "FechaRegistro": "2025-08-31T18:50:38.382434"
+  }
+}
+```
+
+**Nota**: Esta operación es irreversible y eliminará todos los registros asociados al empleado.
 
 ### Accesos
 
 #### GET `/accesos`
+
 Obtiene lista de accesos con filtros opcionales.
 
 **Parámetros de consulta**:
+
 - `empleado_id` (opcional): Filtrar por empleado específico
 - `area_id` (opcional): Filtrar por área específica
 - `tipo_acceso` (opcional): Filtrar por tipo de acceso
@@ -213,11 +277,13 @@ Obtiene lista de accesos con filtros opcionales.
 - `offset` (opcional): Desplazamiento para paginación (default: 0)
 
 **Ejemplo**:
+
 ```bash
 GET /accesos?empleado_id=1&area_id=101&limit=10
 ```
 
 **Respuesta**:
+
 ```json
 [
   {
@@ -237,12 +303,15 @@ GET /accesos?empleado_id=1&area_id=101&limit=10
 ```
 
 #### GET `/accesos/{acceso_id}`
+
 Obtiene información de un acceso específico.
 
 **Parámetros**:
+
 - `acceso_id` (path): ID del acceso
 
 **Respuesta**:
+
 ```json
 {
   "AccesoID": 1,
@@ -263,9 +332,11 @@ Obtiene información de un acceso específico.
 ```
 
 #### POST `/accesos/crear`
+
 Crea un nuevo acceso después de reconocer facialmente al empleado.
 
 **Parámetros**:
+
 - `file` (form): Imagen del rostro para reconocimiento
 - `tipo_acceso` (form): Tipo de acceso (Ingreso o Egreso)
 - `area_id` (form): ID del área donde se intenta el acceso
@@ -273,6 +344,7 @@ Crea un nuevo acceso después de reconocer facialmente al empleado.
 - `observaciones` (form, opcional): Observaciones adicionales
 
 **Validaciones**:
+
 1. **Reconocimiento Facial**: Verifica que se detecte un rostro en la imagen
 2. **Empleado Reconocido**: Compara con los rostros registrados en la base de datos
 3. **Permisos por Área**: Verifica que el empleado tenga acceso al área solicitada
@@ -280,6 +352,7 @@ Crea un nuevo acceso después de reconocer facialmente al empleado.
 **Importante**: Solo se registran accesos cuando son **permitidos**. Los intentos fallidos (empleado no reconocido o sin permisos) devuelven error HTTP pero no crean registros en la base de datos.
 
 **Respuesta de Acceso Permitido**:
+
 ```json
 {
   "message": "Acceso Ingreso registrado correctamente",
@@ -297,6 +370,7 @@ Crea un nuevo acceso después de reconocer facialmente al empleado.
 ```
 
 **Respuesta de Acceso Denegado**:
+
 ```json
 {
   "detail": "Empleado Juan Perez no tiene acceso al área AREA002"
@@ -304,9 +378,11 @@ Crea un nuevo acceso después de reconocer facialmente al empleado.
 ```
 
 #### POST `/accesos/crear_pin`
+
 Crea un nuevo acceso mediante PIN del empleado.
 
 **Parámetros**:
+
 - `pin` (form): PIN de acceso del empleado
 - `tipo_acceso` (form): Tipo de acceso (Ingreso o Egreso)
 - `area_id` (form): ID del área donde se intenta el acceso
@@ -314,11 +390,13 @@ Crea un nuevo acceso mediante PIN del empleado.
 - `observaciones` (form, opcional): Observaciones adicionales
 
 **Validaciones**:
+
 1. **PIN Correcto**: Verifica que el PIN coincida con un empleado
 2. **Permisos por Área**: Verifica que el empleado tenga acceso al área solicitada
 3. **Estado Activo**: Verifica que el empleado esté activo en el sistema
 
 **Respuesta de Acceso Permitido**:
+
 ```json
 {
   "message": "Acceso Ingreso por PIN registrado correctamente",
@@ -336,6 +414,7 @@ Crea un nuevo acceso mediante PIN del empleado.
 ```
 
 **Respuesta de Acceso Denegado**:
+
 ```json
 {
   "detail": "PIN incorrecto o empleado no tiene acceso a esta área"
@@ -345,6 +424,7 @@ Crea un nuevo acceso mediante PIN del empleado.
 ## Flujo de Trabajo del Sistema
 
 ### 1. Registro de Empleados
+
 1. Se crea un empleado en la base de datos
 2. Se registra su rostro mediante `/empleados/{id}/registrar_rostro`
 3. El sistema almacena el encoding facial del empleado
@@ -352,11 +432,14 @@ Crea un nuevo acceso mediante PIN del empleado.
 ### 2. Control de Accesos
 
 #### **Acceso por Reconocimiento Facial**:
+
 1. **Empleado se acerca al dispositivo**:
+
    - Se toma una foto del rostro
    - Se envía al endpoint `/accesos/crear` con método "Facial"
 
 2. **Sistema procesa la solicitud**:
+
    - Detecta rostro en la imagen
    - Compara con rostros registrados
    - Verifica permisos por área
@@ -366,10 +449,13 @@ Crea un nuevo acceso mediante PIN del empleado.
    - **Denegado**: Se devuelve error HTTP (sin crear registro) y se mantiene cerrada
 
 #### **Acceso por PIN**:
+
 1. **Empleado ingresa PIN**:
+
    - Se envía al endpoint `/accesos/crear_pin` con método "PIN"
 
 2. **Sistema procesa la solicitud**:
+
    - Verifica que el PIN coincida con un empleado
    - Verifica que el empleado tenga acceso al área solicitada
    - Verifica que el empleado esté activo
@@ -379,6 +465,7 @@ Crea un nuevo acceso mediante PIN del empleado.
    - **Denegado**: Se devuelve error HTTP (sin crear registro) y se mantiene cerrada
 
 ### 3. Auditoría y Reportes
+
 - Solo los accesos **permitidos** se registran en la base de datos
 - Los intentos fallidos se registran en logs del servidor pero no en la base de datos
 - Se puede consultar historial completo de accesos exitosos mediante `/accesos`
@@ -394,41 +481,28 @@ Crea un nuevo acceso mediante PIN del empleado.
 ## Configuración
 
 ### Umbral de Reconocimiento
+
 El umbral de confianza para el reconocimiento facial se puede ajustar en `main.py`:
+
 ```python
 mejor_confianza = 0.6  # Ajustar según necesidades
 ```
 
 ### Áreas de Acceso
+
 Las áreas se definen mediante `AreaID` en la base de datos. Cada empleado tiene asignada un área específica.
-
-### Configuración CORS
-El sistema permite configurar los orígenes permitidos mediante la variable de entorno `ALLOWED_ORIGINS`:
-
-**Desarrollo local**:
-```env
-ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:8080
-```
-
-**Producción**:
-```env
-ALLOWED_ORIGINS=https://tu-dominio.com,https://app.tu-dominio.com
-```
-
-**Múltiples orígenes**: Separa las URLs con comas sin espacios:
-```env
-ALLOWED_ORIGINS=https://app1.com,https://app2.com,http://localhost:3000
-```
 
 ## Ejemplos de Uso
 
 ### Registrar Rostro de Empleado
+
 ```bash
 curl -X POST "http://localhost:8000/empleados/1/registrar_rostro" \
   -F "file=@rostro_juan.jpg"
 ```
 
 ### Crear Acceso por Reconocimiento Facial
+
 ```bash
 curl -X POST "http://localhost:8000/accesos/crear" \
   -F "file=@rostro_empleado.jpg" \
@@ -438,6 +512,7 @@ curl -X POST "http://localhost:8000/accesos/crear" \
 ```
 
 ### Crear Acceso por PIN
+
 ```bash
 curl -X POST "http://localhost:8000/accesos/crear_pin" \
   -F "pin=1234" \
@@ -447,6 +522,7 @@ curl -X POST "http://localhost:8000/accesos/crear_pin" \
 ```
 
 ### Consultar Accesos
+
 ```bash
 # Todos los accesos
 curl "http://localhost:8000/accesos"
@@ -461,27 +537,34 @@ curl "http://localhost:8000/accesos?area_id=AREA001"
 ## Tecnologías Utilizadas
 
 ### Core Framework
+
 - **FastAPI** (0.116.1): Framework web moderno y rápido con documentación automática
 - **Uvicorn** (0.35.0): Servidor ASGI para FastAPI
 
 ### Reconocimiento Facial y Machine Learning
+
 - **face-recognition** (1.3.0): Librería de reconocimiento facial
 - **NumPy** (2.3.2): Computación numérica y arrays
 
 ### Base de Datos
+
 - **PostgreSQL**: Base de datos principal
 - **SQLAlchemy** (2.0.43): ORM para base de datos
 - **Databases** (0.9.0): Biblioteca para trabajar con bases de datos asíncronas
 
 ### Validación de Datos
+
 - **Pydantic** (2.11.7): Validación de datos y serialización
 
 ### Utilidades
+
 - **Python-multipart** (0.0.20): Manejo de formularios multipart
 - **Python-dotenv** (1.1.1): Carga de variables de entorno
 
 ### Dependencias Automáticas
+
 Las siguientes dependencias se instalan automáticamente como dependencias transitivas:
+
 - **Starlette**: Framework ASGI base para FastAPI
 - **dlib**: Librería de machine learning para visión por computadora
 - **Pillow**: Procesamiento de imágenes

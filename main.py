@@ -7,7 +7,7 @@ import json
 import numpy as np
 from typing import Literal, Optional
 from datetime import datetime
-from database import Empleado, Acceso, TipoAccesoEnum, MetodoAccesoEnum  # solo para referencia, no usados directamente aquí
+from database import Empleado, Acceso, TipoAccesoEnum, MetodoAccesoEnum, EmpleadoCreate, EmpleadoResponse  # solo para referencia, no usados directamente aquí
 import os
 from dotenv import load_dotenv
 
@@ -53,12 +53,12 @@ async def shutdown():
 async def root():
     return {"message": "Backend reconocimiento facial con PostgreSQL listo"}
 
-@app.get("/empleados")
+@app.get("/empleados", response_model=list[EmpleadoResponse])
 async def obtener_empleados():
-    # Consulta empleados
-    query = 'SELECT * FROM empleados'
+    # Consulta empleados usando el modelo de respuesta
+    query = 'SELECT * FROM empleados ORDER BY "EmpleadoID"'
     empleados = await database.fetch_all(query=query)
-    return [dict(empleado) for empleado in empleados]   
+    return [EmpleadoResponse(**dict(empleado)) for empleado in empleados]
 
 @app.get("/areas")
 async def obtener_areas():
@@ -80,9 +80,18 @@ async def obtener_area(area_id: str):
         raise HTTPException(status_code=404, detail="Área no encontrada")
     return dict(area)
 
-@app.get("/empleados/{empleado_id}")
+@app.get("/empleados/{empleado_id}", response_model=EmpleadoResponse)
 async def obtener_empleado(empleado_id: int):
-    # Consulta empleado por ID
+    # Consulta empleado por ID usando el modelo de respuesta
+    query = 'SELECT * FROM empleados WHERE "EmpleadoID" = :empleado_id'
+    empleado = await database.fetch_one(query=query, values={"empleado_id": empleado_id})
+    if not empleado:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+    return EmpleadoResponse(**dict(empleado))
+
+@app.get("/empleados/{empleado_id}/completo")
+async def obtener_empleado_completo(empleado_id: int):
+    # Endpoint para desarrollo que devuelve todos los datos del empleado
     query = 'SELECT * FROM empleados WHERE "EmpleadoID" = :empleado_id'
     empleado = await database.fetch_one(query=query, values={"empleado_id": empleado_id})
     if not empleado:
@@ -177,6 +186,121 @@ async def registrar_rostro(empleado_id: int, file: UploadFile = File(...)):
     await database.execute(query=update_query, values={"encoding": encoding_json, "empleado_id": empleado_id})
 
     return {"message": "Rostro registrado correctamente"}
+
+@app.post("/empleados/crear", response_model=dict)
+async def crear_empleado(empleado_data: EmpleadoCreate):
+    """
+    Crea un nuevo empleado en la base de datos.
+    
+    - **Nombre**: Nombre del empleado
+    - **Apellido**: Apellido del empleado
+    - **DNI**: Número de documento (debe ser único)
+    - **FechaNacimiento**: Fecha de nacimiento (formato YYYY-MM-DD)
+    - **Email**: Correo electrónico (debe ser único)
+    - **Rol**: Rol del empleado (Supervisor, Operario, etc.)
+    - **EstadoEmpleado**: Estado del empleado (Activo, Inactivo, Suspendido)
+    - **AreaID**: ID del área a la que pertenece
+    - **PIN**: PIN de acceso (opcional)
+    
+    Devuelve el ID del empleado creado.
+    """
+    # Verificar si el DNI o Email ya existen
+    async with database.transaction():
+        existing_employee_query = 'SELECT "EmpleadoID" FROM empleados WHERE "DNI" = :dni OR "Email" = :email'
+        existing_employee = await database.fetch_one(
+            query=existing_employee_query, 
+            values={"dni": empleado_data.DNI, "email": empleado_data.Email}
+        )
+        if existing_employee:
+            raise HTTPException(status_code=400, detail="DNI o Email ya registrados")
+        
+        # Verificar si el AreaID existe
+        area_exists_query = 'SELECT "AreaID" FROM areas WHERE "AreaID" = :area_id'
+        area_exists = await database.fetch_one(query=area_exists_query, values={"area_id": empleado_data.AreaID})
+        if not area_exists:
+            raise HTTPException(status_code=404, detail=f"Área con ID '{empleado_data.AreaID}' no encontrada")
+        
+        # Obtener el siguiente ID disponible
+        next_id_query = 'SELECT COALESCE(MAX("EmpleadoID"), 0) + 1 as next_id FROM empleados'
+        next_id_result = await database.fetch_one(query=next_id_query)
+        next_id = next_id_result["next_id"]
+        
+        # Insertar el nuevo empleado
+        now = datetime.now().isoformat()
+        insert_query = """
+            INSERT INTO empleados (
+                "EmpleadoID", "Nombre", "Apellido", "DNI", "FechaNacimiento", "Email", "Rol", 
+                "EstadoEmpleado", "AreaID", "PIN", "FechaRegistro"
+            ) VALUES (
+                :EmpleadoID, :Nombre, :Apellido, :DNI, :FechaNacimiento, :Email, :Rol, 
+                :EstadoEmpleado, :AreaID, :PIN, :FechaRegistro
+            ) RETURNING "EmpleadoID"
+        """
+
+        values = {
+            "EmpleadoID": next_id,
+            "Nombre": empleado_data.Nombre,
+            "Apellido": empleado_data.Apellido,
+            "DNI": empleado_data.DNI,
+            "FechaNacimiento": empleado_data.FechaNacimiento,
+            "Email": empleado_data.Email,
+            "Rol": empleado_data.Rol.value,  # Usar .value para el enum
+            "EstadoEmpleado": empleado_data.EstadoEmpleado.value,
+            "AreaID": empleado_data.AreaID,
+            "PIN": empleado_data.PIN,
+            "FechaRegistro": now
+        }
+        
+        try:
+            empleado_id = await database.execute(query=insert_query, values=values)
+            # Obtener el empleado recién creado para devolverlo en la respuesta
+            empleado = await database.fetch_one(
+                query='SELECT * FROM empleados WHERE "EmpleadoID" = :empleado_id',
+                values={"empleado_id": empleado_id}
+            )
+            return {
+                "message": "Empleado creado correctamente",
+                "empleado": EmpleadoResponse(**dict(empleado)).dict()
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error al crear empleado: {str(e)}")
+
+@app.delete("/empleados/{empleado_id}", response_model=dict)
+async def eliminar_empleado(empleado_id: int):
+    """
+    Elimina un empleado de la base de datos por su EmpleadoID.
+    
+    - **empleado_id**: ID numérico del empleado a eliminar
+    
+    Devuelve un mensaje de confirmación si la operación fue exitosa.
+    """
+    # Verificar si el empleado existe
+    query = 'SELECT * FROM empleados WHERE "EmpleadoID" = :empleado_id'
+    empleado = await database.fetch_one(query=query, values={"empleado_id": empleado_id})
+    if not empleado:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+    
+    # Iniciar transacción para asegurar la integridad de los datos
+    async with database.transaction():
+        # Primero, eliminar registros relacionados en otras tablas (si existen)
+        # Por ejemplo, si hay una tabla de accesos que referencia al empleado
+        try:
+            # Eliminar accesos del empleado
+            await database.execute(
+                query='DELETE FROM accesos WHERE "EmpleadoID" = :empleado_id',
+                values={"empleado_id": empleado_id}
+            )
+            
+            # Luego eliminar el empleado
+            delete_query = 'DELETE FROM empleados WHERE "EmpleadoID" = :empleado_id'
+            await database.execute(query=delete_query, values={"empleado_id": empleado_id})
+            
+            return {
+                "message": "Empleado eliminado correctamente",
+                "empleado_eliminado": EmpleadoResponse(**dict(empleado)).dict()
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error al eliminar empleado: {str(e)}")
 
 @app.post("/accesos/crear")
 async def crear_acceso(

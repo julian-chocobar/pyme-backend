@@ -1,9 +1,10 @@
 from sqlalchemy import (
-    Column, Integer, String, Text, Float, Enum, ForeignKey
+    Column, Integer, String, Text, Float, Enum, ForeignKey, false
 )
 from sqlalchemy.orm import declarative_base, relationship
 from pydantic import BaseModel
 import enum
+from typing import Optional
 
 # Declaramos base para modelos SQLAlchemy
 Base = declarative_base()
@@ -63,6 +64,20 @@ class Empleado(Base):
 
     # Relación con área
     area = relationship("Area", back_populates="empleados")
+
+# Modelos Pydantic para solicitudes (creación de empleados)
+class EmpleadoCreate(BaseModel):
+    Nombre: str
+    Apellido: str
+    DNI: str
+    FechaNacimiento: str
+    Email: str
+    Rol: RolEnum  # Usar el Enum para validación
+    EstadoEmpleado: EstadoEmpleadoEnum # Usar el Enum para validación
+    AreaID: str
+    PIN: Optional[str] = None  # PIN es opcional 
+    class Config:
+        use_enum_values = False # Permite que los valores del enum se usen directamente
 
 # Modelo Acceso
 class Acceso(Base):

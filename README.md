@@ -58,6 +58,7 @@ pip install -r requirements.txt
 DATABASE_URL=postgresql://usuario:password@localhost:5432/nombre_db
 
 ```
+
 6. **Crear base de datos y tablas**:
 
 ```bash
@@ -119,15 +120,12 @@ brew install cmake  # macOS
 - `AccesoID`: ID único del acceso
 - `EmpleadoID`: ID del empleado (puede ser NULL si acceso denegado)
 - `AreaID`: ID del área donde se intentó el acceso
-- `FechaHoraIngreso`: Fecha y hora de ingreso
-- `FechaHoraEgreso`: Fecha y hora de egreso
+- `FechaHora`: Fecha y hora del acceso
 - `TipoAcceso`: Tipo de acceso (Ingreso o Egreso)
 - `MetodoAcceso`: Método utilizado (Facial, PIN, Manual)
 - `DispositivoAcceso`: Dispositivo utilizado para el acceso
 - `ConfianzaReconocimiento`: Nivel de confianza del reconocimiento facial
-- `ObservacionesSeguridad`: Observaciones adicionales
 - `AccesoPermitido`: Si el acceso fue permitido o denegado
-- `MotivoDenegacion`: Razón de la denegación (si aplica)
 
 ## Endpoints de la API
 
@@ -135,7 +133,7 @@ brew install cmake  # macOS
 
 #### GET `/empleados`
 
-Obtiene información de todos los empleados. 
+Obtiene información de todos los empleados.
 
 **Nota**: Este endpoint devuelve solo la información básica de los empleados, sin datos sensibles.
 
@@ -143,30 +141,30 @@ Obtiene información de todos los empleados.
 
 ```json
 [
-    {
-        "EmpleadoID": 1,
-        "Nombre": "Juan",
-        "Apellido": "Perez",
-        "DNI": "12345678",
-        "FechaNacimiento": "1980-01-01",
-        "Email": "juan.perez@example.com",
-        "Rol": "Operario",
-        "EstadoEmpleado": "Activo",
-        "AreaID": "AREA001",
-        "FechaRegistro": "2025-08-31T18:50:38.382434"
-    },
-    {
-        "EmpleadoID": 2,
-        "Nombre": "Maria",
-        "Apellido": "Gomez",
-        "DNI": "87654321",
-        "FechaNacimiento": "1990-05-15",
-        "Email": "maria.gomez@example.com",
-        "Rol": "Supervisor",
-        "EstadoEmpleado": "Activo",
-        "AreaID": "AREA002",
-        "FechaRegistro": "2025-08-31T18:50:38.384872"
-    }
+  {
+    "EmpleadoID": 1,
+    "Nombre": "Juan",
+    "Apellido": "Perez",
+    "DNI": "12345678",
+    "FechaNacimiento": "1980-01-01",
+    "Email": "juan.perez@example.com",
+    "Rol": "Operario",
+    "EstadoEmpleado": "Activo",
+    "AreaID": "AREA001",
+    "FechaRegistro": "2025-08-31T18:50:38.382434"
+  },
+  {
+    "EmpleadoID": 2,
+    "Nombre": "Maria",
+    "Apellido": "Gomez",
+    "DNI": "87654321",
+    "FechaNacimiento": "1990-05-15",
+    "Email": "maria.gomez@example.com",
+    "Rol": "Supervisor",
+    "EstadoEmpleado": "Activo",
+    "AreaID": "AREA002",
+    "FechaRegistro": "2025-08-31T18:50:38.384872"
+  }
 ]
 ```
 
@@ -230,6 +228,23 @@ Crea un nuevo empleado en la base de datos. Los IDs se generan automáticamente 
 }
 ```
 
+#### POST `/empleados/{empleado_id}/registrar_rostro`
+
+Registra el rostro de un empleado para reconocimiento facial.
+
+**Parámetros**:
+
+- `empleado_id` (path): ID del empleado
+- `file` (form): Imagen del rostro
+
+**Respuesta**:
+
+```json
+{
+  "message": "Rostro registrado correctamente"
+}
+```
+
 #### DELETE `/empleados/{empleado_id}`
 
 Elimina un empleado del sistema. Este proceso también elimina todos los registros de accesos asociados al empleado.
@@ -279,7 +294,7 @@ Obtiene lista de accesos con filtros opcionales.
 **Ejemplo**:
 
 ```bash
-GET /accesos?empleado_id=1&area_id=101&limit=10
+GET /accesos?empleado_id=1&area_id=AREA001&limit=10
 ```
 
 **Respuesta**:
@@ -289,12 +304,12 @@ GET /accesos?empleado_id=1&area_id=101&limit=10
   {
     "AccesoID": 1,
     "EmpleadoID": 1,
-    "AreaID": 101,
+    "AreaID": "AREA001",
     "Nombre": "Juan",
     "Apellido": "Perez",
     "DNI": "12345678",
     "Rol": "Operario",
-    "FechaHoraIngreso": "2024-08-31T08:00:00",
+    "FechaHora": "2024-08-31T08:00:00",
     "TipoAcceso": "Ingreso",
     "MetodoAcceso": "Facial",
     "AccesoPermitido": "Permitido"
@@ -316,13 +331,12 @@ Obtiene información de un acceso específico.
 {
   "AccesoID": 1,
   "EmpleadoID": 1,
-  "AreaID": 101,
+  "AreaID": "AREA001",
   "Nombre": "Juan",
   "Apellido": "Perez",
   "DNI": "12345678",
   "Rol": "Operario",
-  "FechaHoraIngreso": "2024-08-31T08:00:00",
-  "FechaHoraEgreso": "2024-08-31T17:00:00",
+  "FechaHora": "2024-08-31T08:00:00",
   "TipoAcceso": "Ingreso",
   "MetodoAcceso": "Facial",
   "DispositivoAcceso": "Dispositivo1",

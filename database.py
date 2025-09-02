@@ -30,7 +30,6 @@ class TipoAccesoEnum(str, enum.Enum):
 class MetodoAccesoEnum(str, enum.Enum):
     Facial = "Facial"
     PIN = "PIN"
-    Manual = "Manual"
 
 # Modelo Area
 class Area(Base):
@@ -38,7 +37,6 @@ class Area(Base):
 
     AreaID = Column(String, primary_key=True, index=True)  # AREA001, AREA002, etc.
     Nombre = Column(String, nullable=False)
-    NivelAcceso = Column(Integer, nullable=False)
     Descripcion = Column(Text, nullable=False)
     Estado = Column(String, nullable=False, default="Activo")
 
@@ -49,7 +47,7 @@ class Area(Base):
 class Empleado(Base):
     __tablename__ = "empleados"
 
-    EmpleadoID = Column(Integer, primary_key=True, index=True)
+    EmpleadoID = Column(Integer, primary_key=True, index=True, autoincrement=True)
     Nombre = Column(String, nullable=False)
     Apellido = Column(String, nullable=False)
     DNI = Column(String, unique=True, nullable=False)
@@ -83,18 +81,15 @@ class EmpleadoCreate(BaseModel):
 class Acceso(Base):
     __tablename__ = "accesos"
 
-    AccesoID = Column(Integer, primary_key=True, index=True)
+    AccesoID = Column(Integer, primary_key=True, index=True, autoincrement=True)
     EmpleadoID = Column(Integer, ForeignKey("empleados.EmpleadoID"), nullable=True)  # Puede ser NULL si acceso denegado
     AreaID = Column(String, ForeignKey("areas.AreaID"), nullable=False)
-    FechaHoraIngreso = Column(String, nullable=True)
-    FechaHoraEgreso = Column(String, nullable=True)
+    FechaHora = Column(String, nullable=False)
     TipoAcceso = Column(Enum(TipoAccesoEnum), nullable=False)
     MetodoAcceso = Column(Enum(MetodoAccesoEnum), nullable=False)
     DispositivoAcceso = Column(String, nullable=False)
     ConfianzaReconocimiento = Column(Float, nullable=True)
-    ObservacionesSeguridad = Column(Text, nullable=True)
     AccesoPermitido = Column(String, nullable=False)  # "Permitido" o "Denegado"
-    MotivoDenegacion = Column(Text, nullable=True)  # Razón si el acceso fue denegado
 
 # Modelos Pydantic para respuestas (sin información sensible)
 class EmpleadoResponse(BaseModel):
@@ -115,7 +110,6 @@ class EmpleadoResponse(BaseModel):
 class AreaResponse(BaseModel):
     AreaID: str
     Nombre: str
-    NivelAcceso: int
     Descripcion: str
     Estado: str
     

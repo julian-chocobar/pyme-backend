@@ -17,7 +17,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://pyme-frontend-smoky.vercel.app", "http://localhost:5173,http://localhost:3000,http://localhost:8080"],
+    allow_origins=["https://pyme-frontend-smoky.vercel.app", "http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],             # Permite todos los métodos HTTP
     allow_headers=["*"],             # Permite todos los headers
@@ -132,11 +132,11 @@ async def obtener_accesos(
         values["tipo_acceso"] = tipo_acceso
     
     if fecha_inicio:
-        base_query += ' AND (a."FechaHoraIngreso" >= :fecha_inicio OR a."FechaHoraEgreso" >= :fecha_inicio)'
+        base_query += ' AND a."FechaHora" >= :fecha_inicio'
         values["fecha_inicio"] = fecha_inicio
     
     if fecha_fin:
-        base_query += ' AND (a."FechaHoraIngreso" <= :fecha_fin OR a."FechaHoraEgreso" <= :fecha_fin)'
+        base_query += ' AND a."FechaHora" <= :fecha_fin'
         values["fecha_fin"] = fecha_fin
     
     base_query += ' ORDER BY a."AccesoID" DESC LIMIT :limit OFFSET :offset'
@@ -220,25 +220,18 @@ async def crear_empleado(empleado_data: EmpleadoCreate):
         if not area_exists:
             raise HTTPException(status_code=404, detail=f"Área con ID '{empleado_data.AreaID}' no encontrada")
         
-        # Obtener el siguiente ID disponible
-        next_id_query = 'SELECT COALESCE(MAX("EmpleadoID"), 0) + 1 as next_id FROM empleados'
-        next_id_result = await database.fetch_one(query=next_id_query)
-        next_id = next_id_result["next_id"]
-        
-        # Insertar el nuevo empleado
+        # Insertar el nuevo empleado (sin especificar EmpleadoID para usar auto-incremento)
         now = datetime.now().isoformat()
         insert_query = """
             INSERT INTO empleados (
-                "EmpleadoID", "Nombre", "Apellido", "DNI", "FechaNacimiento", "Email", "Rol", 
+                "Nombre", "Apellido", "DNI", "FechaNacimiento", "Email", "Rol", 
                 "EstadoEmpleado", "AreaID", "PIN", "FechaRegistro"
             ) VALUES (
-                :EmpleadoID, :Nombre, :Apellido, :DNI, :FechaNacimiento, :Email, :Rol, 
+                :Nombre, :Apellido, :DNI, :FechaNacimiento, :Email, :Rol, 
                 :EstadoEmpleado, :AreaID, :PIN, :FechaRegistro
             ) RETURNING "EmpleadoID"
         """
-
         values = {
-            "EmpleadoID": next_id,
             "Nombre": empleado_data.Nombre,
             "Apellido": empleado_data.Apellido,
             "DNI": empleado_data.DNI,
@@ -308,7 +301,6 @@ async def crear_acceso(
     tipo_acceso: TipoAccesoEnum = Form(...),
     area_id: str = Form(...),
     dispositivo: str = Form("Dispositivo1"),
-    observaciones: Optional[str] = Form(None)
 ):
     """
     Crea un nuevo acceso después de reconocer facialmente al empleado.
@@ -354,32 +346,26 @@ async def crear_acceso(
             )
 
         # Acceso permitido - crear registro
-        fecha_ingreso = ahora if tipo_acceso == TipoAccesoEnum.Ingreso else None
-        fecha_egreso = ahora if tipo_acceso == TipoAccesoEnum.Egreso else None
-
         acceso_permitido = {
             "EmpleadoID": mejor_empleado["EmpleadoID"],
             "AreaID": area_id,
-            "FechaHoraIngreso": fecha_ingreso,
-            "FechaHoraEgreso": fecha_egreso,
+            "FechaHora": ahora,
             "TipoAcceso": tipo_acceso.value,
             "MetodoAcceso": "Facial",
             "DispositivoAcceso": dispositivo,
             "ConfianzaReconocimiento": 1 - mejor_confianza,
-            "ObservacionesSeguridad": observaciones,
             "AccesoPermitido": "Permitido",
-            "MotivoDenegacion": None
         }
 
         insert_query = """
             INSERT INTO accesos (
-                "EmpleadoID", "AreaID", "FechaHoraIngreso", "FechaHoraEgreso",
+                "EmpleadoID", "AreaID", "FechaHora",
                 "TipoAcceso", "MetodoAcceso", "DispositivoAcceso", "ConfianzaReconocimiento",
-                "ObservacionesSeguridad", "AccesoPermitido", "MotivoDenegacion"
+                "AccesoPermitido"
             ) VALUES (
-                :EmpleadoID, :AreaID, :FechaHoraIngreso, :FechaHoraEgreso,
+                :EmpleadoID, :AreaID, :FechaHora,
                 :TipoAcceso, :MetodoAcceso, :DispositivoAcceso, :ConfianzaReconocimiento,
-                :ObservacionesSeguridad, :AccesoPermitido, :MotivoDenegacion
+                :AccesoPermitido
             )
         """
 
@@ -410,7 +396,6 @@ async def crear_acceso_pin(
     tipo_acceso: TipoAccesoEnum = Form(...),
     area_id: str = Form(...),
     dispositivo: str = Form("Dispositivo1"),
-    observaciones: Optional[str] = Form(None)
 ):
     """
     Crea un nuevo acceso mediante PIN.
@@ -437,32 +422,27 @@ async def crear_acceso_pin(
 
         # Acceso permitido - crear registro
         ahora = datetime.now().isoformat()
-        fecha_ingreso = ahora if tipo_acceso == TipoAccesoEnum.Ingreso else None
-        fecha_egreso = ahora if tipo_acceso == TipoAccesoEnum.Egreso else None
 
         acceso_permitido = {
             "EmpleadoID": empleado["EmpleadoID"],
             "AreaID": area_id,
-            "FechaHoraIngreso": fecha_ingreso,
-            "FechaHoraEgreso": fecha_egreso,
+            "FechaHora": ahora,
             "TipoAcceso": tipo_acceso.value,
             "MetodoAcceso": "PIN",
             "DispositivoAcceso": dispositivo,
             "ConfianzaReconocimiento": 1.0,  # PIN es 100% confiable
-            "ObservacionesSeguridad": observaciones,
-            "AccesoPermitido": "Permitido",
-            "MotivoDenegacion": None
+            "AccesoPermitido": "Permitido"
         }
 
         insert_query = """
             INSERT INTO accesos (
-                "EmpleadoID", "AreaID", "FechaHoraIngreso", "FechaHoraEgreso",
+                "EmpleadoID", "AreaID", "FechaHora",
                 "TipoAcceso", "MetodoAcceso", "DispositivoAcceso", "ConfianzaReconocimiento",
-                "ObservacionesSeguridad", "AccesoPermitido", "MotivoDenegacion"
+                "AccesoPermitido"
             ) VALUES (
-                :EmpleadoID, :AreaID, :FechaHoraIngreso, :FechaHoraEgreso,
+                :EmpleadoID, :AreaID, :FechaHora,
                 :TipoAcceso, :MetodoAcceso, :DispositivoAcceso, :ConfianzaReconocimiento,
-                :ObservacionesSeguridad, :AccesoPermitido, :MotivoDenegacion
+                :AccesoPermitido
             )
         """
 

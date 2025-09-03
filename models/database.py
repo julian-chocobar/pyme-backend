@@ -3,33 +3,11 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, relationship
 from pydantic import BaseModel
-import enum
 from typing import Optional
+from models.enums import RolEnum, EstadoEmpleadoEnum, TipoAccesoEnum, MetodoAccesoEnum
 
 # Declaramos base para modelos SQLAlchemy
 Base = declarative_base()
-
-# Enumerados para roles y estados
-class RolEnum(str, enum.Enum):
-    Supervisor = "Supervisor"
-    Operario = "Operario"
-    Jefe_Turno = "Jefe_Turno"
-    Control_Calidad = "Control_Calidad"
-    Mantenimiento = "Mantenimiento"
-    Administracion = "Administracion"
-
-class EstadoEmpleadoEnum(str, enum.Enum):
-    Activo = "Activo"
-    Inactivo = "Inactivo"
-    Suspendido = "Suspendido"
-
-class TipoAccesoEnum(str, enum.Enum):
-    Ingreso = "Ingreso"
-    Egreso = "Egreso"
-
-class MetodoAccesoEnum(str, enum.Enum):
-    Facial = "Facial"
-    PIN = "PIN"
 
 # Modelo Area
 class Area(Base):

@@ -62,13 +62,13 @@ DATABASE_URL=postgresql://usuario:password@localhost:5432/nombre_db
 6. **Crear base de datos y tablas**:
 
 ```bash
-python create_tables.py
+python scripts/seed_data.py
 ```
 
 7. **Ejecutar la aplicación**:
 
 ```bash
-python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+python main.py
 ```
 
 La aplicación estará disponible en: `http://localhost:8000`
@@ -90,6 +90,32 @@ brew install cmake  # macOS
 - Verificar que PostgreSQL esté ejecutándose
 - Confirmar que la URL de conexión en `.env` sea correcta
 - Verificar que la base de datos exista
+
+## Estructura del Proyecto
+
+```
+pyme-backend/
+├── api/                    # Endpoints de la API
+│   ├── empleados.py       # Endpoints de empleados
+│   ├── areas.py           # Endpoints de áreas
+│   └── accesos.py         # Endpoints de accesos
+├── models/                # Modelos de datos
+│   ├── database.py        # Modelos SQLAlchemy y Pydantic
+│   └── enums.py           # Enumeraciones del sistema
+├── services/              # Lógica de negocio
+│   ├── empleado_service.py
+│   ├── area_service.py
+│   ├── acceso_service.py
+│   └── face_recognition_service.py
+├── database/              # Configuración de base de datos
+│   ├── connection.py      # Conexión SQLAlchemy
+│   └── repositories.py    # Repositorios de datos
+├── scripts/               # Scripts de utilidad
+│   └── seed_data.py       # Datos de ejemplo
+├── main.py               # Aplicación principal FastAPI
+├── requirements.txt      # Dependencias
+└── README.md            # Documentación
+```
 
 ## Estructura de la Base de Datos
 
@@ -496,10 +522,11 @@ Crea un nuevo acceso mediante PIN del empleado.
 
 ### Umbral de Reconocimiento
 
-El umbral de confianza para el reconocimiento facial se puede ajustar en `main.py`:
+El umbral de confianza para el reconocimiento facial se puede ajustar en `services/face_recognition_service.py`:
 
 ```python
-mejor_confianza = 0.6  # Ajustar según necesidades
+def __init__(self, threshold=0.6):
+    self.threshold = threshold  # Ajustar según necesidades
 ```
 
 ### Áreas de Acceso

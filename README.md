@@ -12,8 +12,8 @@ Este es un backend desarrollado en FastAPI que implementa un sistema de control 
 
 ## Requisitos del Sistema
 
-- **Python**: 3.8 o superior
-- **PostgreSQL**: 12 o superior
+- **Python**: Se recomienda usar la versión 3.9.18 por compatibilidad de dependencias
+- **PostgreSQL**: 12 o superior, idealmente 17.4
 - **Sistema Operativo**: Windows, Linux o macOS
 
 ## Instalación
@@ -25,7 +25,7 @@ git clone <url-del-repositorio>
 cd pyme-backend
 ```
 
-2. **Crear entorno virtual**:
+2. **Crear entorno virtual**: (el comando "python" varia dependiendo de la version de python que se use)
 
 ```bash
 python -m venv venv
@@ -42,7 +42,7 @@ venv\Scripts\activate.bat
 source venv/bin/activate
 ```
 
-4. **Instalar dependencias**:
+4. **Instalar dependencias** (el comando "pip" varia dependiendo de la version de python que se use):
 
 ```bash
 pip install -r requirements.txt
@@ -68,7 +68,7 @@ python scripts/seed_data.py
 7. **Ejecutar la aplicación**:
 
 ```bash
-python main.py
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 La aplicación estará disponible en: `http://localhost:8000`
@@ -90,6 +90,56 @@ brew install cmake  # macOS
 - Verificar que PostgreSQL esté ejecutándose
 - Confirmar que la URL de conexión en `.env` sea correcta
 - Verificar que la base de datos exista
+
+## Uso con Docker
+
+El proyecto incluye un Dockerfile que permite ejecutar la aplicación en un contenedor. Sigue estos pasos para usarlo localmente:
+
+1. **Construir la imagen de Docker**:
+
+```bash
+docker build -t pyme-backend .
+```
+
+2. **Ejecutar el contenedor**:
+
+```bash
+docker run -d \
+  --name pyme-backend \
+  -p 8000:8000 \
+  -e DATABASE_URL=postgresql://usuario:password@host.docker.internal:5432/nombre_db \
+  pyme-backend
+```
+
+**Notas importantes**:
+- Asegúrate de tener Docker instalado y en ejecución en tu sistema.
+- El comando asume que tu base de datos PostgreSQL está corriendo en tu máquina local. Si estás usando Docker para PostgreSQL, asegúrate de que ambos contenedores estén en la misma red de Docker.
+- El parámetro `host.docker.internal` apunta a la IP de tu máquina host desde dentro del contenedor.
+- Ajusta las variables de entorno según tu configuración de base de datos.
+
+3. **Verificar que el contenedor esté en ejecución**:
+
+```bash
+docker ps
+```
+
+4. **Ver los logs del contenedor**:
+
+```bash
+docker logs pyme-backend
+```
+
+5. **Detener el contenedor**:
+
+```bash
+docker stop pyme-backend
+```
+
+6. **Eliminar el contenedor (si es necesario)**:
+
+```bash
+docker rm pyme-backend
+```
 
 ## Estructura del Proyecto
 
@@ -116,6 +166,8 @@ pyme-backend/
 ├── requirements.txt      # Dependencias
 └── README.md            # Documentación
 ```
+
+
 
 ## Estructura de la Base de Datos
 
@@ -338,7 +390,6 @@ GET /accesos?empleado_id=1&area_id=AREA001&limit=10
     "FechaHora": "2024-08-31T08:00:00",
     "TipoAcceso": "Ingreso",
     "MetodoAcceso": "Facial",
-    "AccesoPermitido": "Permitido"
   }
 ]
 ```
@@ -367,7 +418,6 @@ Obtiene información de un acceso específico.
   "MetodoAcceso": "Facial",
   "DispositivoAcceso": "Dispositivo1",
   "ConfianzaReconocimiento": 0.95,
-  "AccesoPermitido": "Permitido"
 }
 ```
 
@@ -504,19 +554,6 @@ Crea un nuevo acceso mediante PIN del empleado.
    - **Permitido**: Se registra entrada/salida en la base de datos y se abre la puerta
    - **Denegado**: Se devuelve error HTTP (sin crear registro) y se mantiene cerrada
 
-### 3. Auditoría y Reportes
-
-- Solo los accesos **permitidos** se registran en la base de datos
-- Los intentos fallidos se registran en logs del servidor pero no en la base de datos
-- Se puede consultar historial completo de accesos exitosos mediante `/accesos`
-- Filtros por empleado, área, fecha, tipo de acceso
-
-## Seguridad
-
-- **Reconocimiento Facial**: Umbral de confianza configurable (default: 0.6)
-- **Validación de Permisos**: Verificación estricta de acceso por área
-- **Registro Completo**: Todos los intentos de acceso se registran
-- **Auditoría**: Trazabilidad completa de movimientos
 
 ## Configuración
 
@@ -562,6 +599,9 @@ curl -X POST "http://localhost:8000/accesos/crear_pin" \
   -F "dispositivo=Dispositivo1"
 ```
 
+
+
+
 ### Consultar Accesos
 
 ```bash
@@ -575,44 +615,29 @@ curl "http://localhost:8000/accesos?empleado_id=1"
 curl "http://localhost:8000/accesos?area_id=AREA001"
 ```
 
+
 ## Tecnologías Utilizadas
 
 ### Core Framework
+- **FastAPI 0.95.2**: Framework web moderno y rápido para construir APIs con Python
+- **Uvicorn 0.22.0**: Servidor ASGI para ejecutar aplicaciones FastAPI
 
-- **FastAPI** (0.116.1): Framework web moderno y rápido con documentación automática
-- **Uvicorn** (0.35.0): Servidor ASGI para FastAPI
+### ORM y Bases de Datos
+- **SQLAlchemy 1.4.41**: ORM para la interacción con la base de datos
+- **Databases 0.6.2**: Soporte asíncrono para bases de datos SQL
+- **Pydantic 1.10.7**: Validación de datos y configuración mediante type hints
+- **PostgreSQL**: Sistema de base de datos relacional
+- **psycopg2**: Adaptador PostgreSQL para Python
+- **greenlet 2.0.2**: Soporte para programación asíncrona
 
-### Reconocimiento Facial y Machine Learning
+### Procesamiento de Imágenes
+- **face-recognition 1.3.0**: Biblioteca para reconocimiento facial
+- **NumPy 1.24.3**: Soporte para operaciones numéricas y arrays multidimensionales
+- **Pillow 9.5.0**: Procesamiento de imágenes
 
-- **face-recognition** (1.3.0): Librería de reconocimiento facial
-- **NumPy** (2.3.2): Computación numérica y arrays
-
-### Base de Datos
-
-- **PostgreSQL**: Base de datos principal
-- **SQLAlchemy** (2.0.43): ORM para base de datos
-- **Databases** (0.9.0): Biblioteca para trabajar con bases de datos asíncronas
-
-### Validación de Datos
-
-- **Pydantic** (2.11.7): Validación de datos y serialización
 
 ### Utilidades
-
-- **Python-multipart** (0.0.20): Manejo de formularios multipart
-- **Python-dotenv** (1.1.1): Carga de variables de entorno
-
-### Dependencias Automáticas
-
-Las siguientes dependencias se instalan automáticamente como dependencias transitivas:
-
-- **Starlette**: Framework ASGI base para FastAPI
-- **dlib**: Librería de machine learning para visión por computadora
-- **Pillow**: Procesamiento de imágenes
-- **psycopg2-binary**: Driver PostgreSQL
-- **asyncpg**: Driver PostgreSQL asíncrono
-- **Pydantic Core**: Core de Pydantic
-- **Annotated Types**: Tipos anotados para validación
-- **AnyIO**: Biblioteca para programación asíncrona
-- **H11**: Implementación del protocolo HTTP/1.1
-- **Sniffio**: Detección de bibliotecas asíncronas
+- **python-multipart 0.0.6**: Manejo de carga de archivos
+- **python-dotenv 1.0.0**: Manejo de variables de entorno
+- **anyio 3.6.2**: Utilidades de E/S asíncrona
+- **starlette 0.27.0**: Framework web ligero en el que se basa FastAPI

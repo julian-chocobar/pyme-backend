@@ -21,3 +21,7 @@ python-multipart==0.0.6
 anyio==3.6.2  # Requerido por starlette
 starlette==0.27.0  # Versión específica para compatibilidad
 python-dotenv==1.0.0
+
+# PostgreSQL
+greenlet==2.0.2  # Dependencia de psycopg2
+psycopg2-binary==2.9.6  # PostgreSQL adapter for Python

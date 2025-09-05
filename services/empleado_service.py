@@ -1,7 +1,7 @@
 from database.connection import SessionLocal
 from database.repositories import EmpleadoRepository, AreaRepository
 from models.database import EmpleadoCreate, EmpleadoResponse
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import HTTPException
 
 class EmpleadoService:
@@ -78,7 +78,8 @@ class EmpleadoService:
             raise HTTPException(status_code=404, detail=f"Área con ID '{empleado_data.AreaID}' no encontrada")
         
         # Crear empleado
-        now = datetime.now().isoformat()
+        # Usar UTC en lugar de la hora local
+        now = datetime.now(timezone.utc).isoformat()  # Genera la hora en UTC con offset +00:00
         empleado_dict = {
             "Nombre": empleado_data.Nombre,
             "Apellido": empleado_data.Apellido,

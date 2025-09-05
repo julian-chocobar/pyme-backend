@@ -2,7 +2,7 @@ from database.connection import SessionLocal
 from database.repositories import AccesoRepository, EmpleadoRepository
 from services.face_recognition_service import FaceRecognitionService
 from models.enums import TipoAccesoEnum
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import HTTPException
 
 class AccesoService:
@@ -61,7 +61,8 @@ class AccesoService:
                 )
             
             # Crear registro de acceso
-            ahora = datetime.now().isoformat()
+            # Usar UTC en lugar de la hora local
+            ahora = datetime.now(timezone.utc).isoformat()  # Genera la hora en UTC con offset +00:00
             acceso_data = {
                 "EmpleadoID": mejor_empleado.EmpleadoID,
                 "AreaID": area_id,
@@ -115,7 +116,7 @@ class AccesoService:
                 )
             
             # Crear registro de acceso
-            ahora = datetime.now().isoformat()
+            ahora = datetime.now(timezone.utc).isoformat()  # Usar UTC
             acceso_data = {
                 "EmpleadoID": empleado.EmpleadoID,
                 "AreaID": area_id,

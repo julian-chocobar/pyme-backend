@@ -68,6 +68,10 @@ DATABASE_URL=postgresql://usuario:password@localhost:5432/nombre_db
 ```bash
 python scripts/seed_data.py
 ```
+ó
+```bash
+python -m scripts.seed_data
+```
 
 7. **Ejecutar la aplicación**:
 

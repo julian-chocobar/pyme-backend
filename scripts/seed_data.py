@@ -112,23 +112,35 @@ def generate_employee_data(num_employees: int = 200) -> List[Dict]:
     fake = Faker('es_ES')
     Faker.seed(42)  # For reproducibility
     
-    # Area distribution (area_id: percentage of employees)
-    area_distribution = {
-        "AREA001": 0.12,  # Preparacion
-        "AREA002": 0.15,  # Procesamiento
-        "AREA003": 0.18,  # Elaboración
-        "AREA004": 0.14,  # Envasado
-        "AREA005": 0.08,  # Etiquetado
-        "AREA006": 0.10,  # Control Calidad
-        "AREA007": 0.13,  # Administración
-        "AREA008": 0.05,  # Comun
-        "AREA009": 0.05   # Logistica
-    }
+    # Area distribution (area_id: (percentage, count))
+    area_distribution = [
+        ("AREA001", 0.22),  # Preparacion
+        ("AREA002", 0.13),  # Procesamiento
+        ("AREA003", 0.13),  # Elaboración
+        ("AREA004", 0.13),  # Envasado
+        ("AREA005", 0.08),  # Etiquetado
+        ("AREA006", 0.10),  # Control Calidad
+        ("AREA007", 0.12),  # Administración
+        ("AREA008", 0.05),  # Comun
+        ("AREA009", 0.04)   # Logistica
+    ]
     
-    # Generate area assignments
-    areas = list(area_distribution.keys())
-    probs = list(area_distribution.values())
-    area_assignments = np.random.choice(areas, size=num_employees, p=probs)
+    # Calculate exact number of employees per area
+    area_assignments = []
+    remaining_employees = num_employees
+    
+    # Assign exact counts for all areas except the last one
+    for i, (area_id, percentage) in enumerate(area_distribution[:-1]):
+        count = int(round(percentage * num_employees))
+        area_assignments.extend([area_id] * count)
+        remaining_employees -= count
+    
+    # Assign remaining employees to the last area to ensure total is exactly 200
+    last_area_id = area_distribution[-1][0]
+    area_assignments.extend([last_area_id] * remaining_employees)
+    
+    # Shuffle the assignments to randomize the order
+    random.shuffle(area_assignments)
     
     # Generate role distribution (more operarios than supervisors)
     roles = [RolEnum.Operario] * 8 + [RolEnum.Supervisor] * 2

@@ -13,12 +13,69 @@ class AccesoService:
         self.face_service = FaceRecognitionService(threshold=0.6)
     
     def get_all_accesos(self, empleado_id=None, area_id=None, tipo_acceso=None, 
-                       fecha_inicio=None, fecha_fin=None, limit=100, offset=0):
-        """Obtiene todos los accesos con filtros"""
-        accesos = self.acceso_repo.get_all_with_employee_info(
-            empleado_id, area_id, tipo_acceso, fecha_inicio, fecha_fin, limit, offset
+                       fecha_inicio=None, fecha_fin=None, limit=10, offset=0, 
+                       page=1, page_size=10):
+        """Obtiene todos los accesos con filtros y paginación
+        
+        Args:
+            empleado_id: Filtrar por ID de empleado
+            area_id: Filtrar por ID de área
+            tipo_acceso: Filtrar por tipo de acceso
+            fecha_inicio: Filtrar desde esta fecha
+            fecha_fin: Filtrar hasta esta fecha
+            limit: Número máximo de registros a devolver
+            offset: Número de registros a omitir
+            page: Número de página actual (comienza en 1)
+            page_size: Tamaño de la página
+            
+        Returns:
+            Dict con la lista de accesos y metadatos de paginación
+        """
+        from datetime import datetime
+        
+        # Convert string dates to datetime objects
+        if isinstance(fecha_inicio, str):
+            try:
+                fecha_inicio = datetime.fromisoformat(fecha_inicio)
+            except (ValueError, TypeError):
+                fecha_inicio = None
+                
+        if isinstance(fecha_fin, str):
+            try:
+                fecha_fin = datetime.fromisoformat(fecha_fin)
+            except (ValueError, TypeError):
+                fecha_fin = None
+        
+        # Obtener accesos con paginación
+        accesos, total = self.acceso_repo.get_all_with_employee_info(
+            empleado_id=empleado_id,
+            area_id=area_id,
+            tipo_acceso=tipo_acceso,
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
+            limit=limit,
+            offset=offset
         )
-        return accesos  # Ya devuelve diccionarios desde el repositorio
+        
+        # Calcular metadatos de paginación
+        total_pages = (total + page_size - 1) // page_size if page_size > 0 else 1
+        
+        # Asegurar que la página actual sea válida
+        current_page = max(1, min(page, total_pages)) if total_pages > 0 else 1
+        
+        pagination = {
+            "total": total,
+            "page": current_page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+            "has_previous": current_page > 1,
+            "has_next": current_page < total_pages
+        }
+        
+        return {
+            "items": accesos,
+            "pagination": pagination
+        }
     
     def get_acceso(self, acceso_id: int):
         """Obtiene un acceso por ID"""

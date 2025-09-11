@@ -35,7 +35,10 @@ class Empleado(Base):
     EstadoEmpleado = Column(Enum(EstadoEmpleadoEnum), nullable=False)
     AreaID = Column(String, ForeignKey("areas.AreaID"), nullable=False)
     PIN = Column(String, nullable=True)  # PIN de acceso (opcional)
-    DatosBiometricos = Column(Text, nullable=True)  # JSON string con encoding facial
+    DatosBiometricos = Column(Text, nullable=True)  # JSON string con encoding facial (legacy)
+    vector_cifrado = Column(Text, nullable=True)  # Encrypted facial vector
+    iv = Column(Text, nullable=True)  # Initialization vector for decryption
+    estado = Column(String, default='activo', nullable=False)  # 'activo' or 'inactivo'
     FechaRegistro = Column(String, nullable=False)
 
     # Relación con área
@@ -80,7 +83,21 @@ class EmpleadoResponse(BaseModel):
     Rol: str
     EstadoEmpleado: str
     AreaID: str
+    AreaNombre: Optional[str] = None
+    TieneBiometricos: bool = False
     FechaRegistro: str
+
+class PaginationMetadata(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_previous: bool
+    has_next: bool
+
+class PaginatedResponse(BaseModel):
+    items: list
+    pagination: PaginationMetadata
     
     class Config:
         from_attributes = True

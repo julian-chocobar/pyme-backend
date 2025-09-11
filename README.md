@@ -4,11 +4,15 @@ Este es un backend desarrollado en FastAPI que implementa un sistema de control 
 
 ## Características
 
-- **Reconocimiento Facial**: Utiliza la librería `face_recognition` para identificar empleados
+- **Reconocimiento Facial Avanzado**: Utiliza la librería `face_recognition` con optimizaciones para identificar empleados de manera eficiente
+- **Cifrado Seguro**: Los vectores biométricos se almacenan cifrados con AES-256-GCM para máxima seguridad
 - **Control de Accesos**: Registra entradas y salidas con validación de permisos por área
-- **Base de Datos PostgreSQL**: Almacena empleados, accesos y datos biométricos
+- **Base de Datos PostgreSQL**: Almacena empleados, accesos y datos biométricos de forma segura
 - **API REST**: Endpoints para gestión completa del sistema
-- **Validaciones de Seguridad**: Verifica permisos por área y reconoce empleados
+- **Validaciones de Seguridad**: Verifica permisos por área y reconoce empleados con umbral de confianza ajustable
+
+
+```
 
 ## Requisitos del Sistema
 
@@ -313,19 +317,58 @@ Registra el rostro de un empleado para reconocimiento facial.
 **Parámetros**:
 
 - `empleado_id` (path): ID del empleado
-- `file` (form): Imagen del rostro
+- `file` (form): Imagen del rostro (formato: jpg, png)
 
-**Respuesta**:
+**Respuesta exitosa (200 OK)**:
 
 ```json
 {
-  "message": "Rostro registrado correctamente"
+  "message": "Rostro registrado correctamente",
+  "vector_length": 128,
+  "encryption_status": "success"
 }
 ```
 
+**Errores comunes**:
+
+- `400 Bad Request`: Imagen no proporcionada o inválida
+- `404 Not Found`: Empleado no encontrado
+- `500 Internal Server Error`: Error al procesar la imagen
+
+#### POST `/accesos/crear`
+
+Crea un nuevo registro de acceso mediante reconocimiento facial.
+
+**Parámetros (form-data)**:
+
+- `file`: Imagen del rostro para reconocimiento
+- `tipo_acceso`: "Ingreso" o "Salida"
+- `area_id`: ID del área a la que se intenta acceder
+- `dispositivo`: (opcional) Identificador del dispositivo
+
+**Respuesta exitosa (200 OK)**:
+
+```json
+{
+  "acceso_id": 123,
+  "empleado_id": 1,
+  "empleado_nombre": "Juan Pérez",
+  "area_id": "AREA001",
+  "tipo_acceso": "Ingreso",
+  "fecha_hora": "2025-09-10T15:30:00-03:00",
+  "acceso_permitido": true,
+  "confianza": 0.92
+}
+```
+
+**Errores comunes**:
+
+- `403 Forbidden`: Acceso denegado (empleado no reconocido o sin permisos)
+- `400 Bad Request`: Parámetros inválidos
+
 #### DELETE `/empleados/{empleado_id}`
 
-Elimina un empleado del sistema. Este proceso también elimina todos los registros de accesos asociados al empleado.
+Elimina un empleado del sistema. Este proceso también elimina todos los registros de accesos asociados al empleado y sus datos biométricos.
 
 **Parámetros**:
 
@@ -467,7 +510,7 @@ Crea un nuevo acceso después de reconocer facialmente al empleado.
 }
 ```
 
-#### POST `/accesos/crear_pin`
+#### POST `/accesos/crear_pin` (Acceso con PIN)
 
 Crea un nuevo acceso mediante PIN del empleado.
 
@@ -569,6 +612,41 @@ def __init__(self, threshold=0.6):
 ### Áreas de Acceso
 
 Las áreas se definen mediante `AreaID` en la base de datos. Cada empleado tiene asignada un área específica.
+
+## Seguridad y Cifrado
+
+### Implementación de Seguridad
+
+#### 1. Almacenamiento Seguro de Datos Biométricos
+
+Los vectores faciales se almacenan de forma segura utilizando cifrado AES-256-GCM, que proporciona:
+
+- **Confidencialidad**: Los datos biométricos están cifrados en reposo
+- **Autenticación**: Garantiza que los datos no han sido alterados
+- **IV único**: Cada vector se cifra con un vector de inicialización (IV) único
+
+#### 2. Flujo de Autenticación Facial
+
+1. **Registro**:
+   - Se extrae el vector facial de la imagen
+   - Se genera un IV único
+   - El vector se cifra usando AES-256-GCM
+   - Se almacenan tanto el vector cifrado como el IV
+
+2. **Autenticación**:
+   - Se extrae el vector facial de la imagen de entrada
+   - Se recuperan y descifran los vectores almacenados
+   - Se compara la similitud con todos los vectores
+   - Se valida el acceso según el umbral de confianza
+
+#### 3. Configuración Requerida
+
+```env
+# Clave de cifrado (generar con: python -c "import os; print(os.urandom(32).hex())")
+VECTOR_ENCRYPTION_KEY=tu_clave_secreta_aqui
+
+# Base de datos
+DATABASE_URL=postgresql://usuario:password@localhost:5432/nombre_db
 
 ## Ejemplos de Uso
 

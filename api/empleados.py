@@ -1,16 +1,35 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 from services.empleado_service import EmpleadoService
 from services.face_recognition_service import FaceRecognitionService
-from models.database import EmpleadoCreate, EmpleadoResponse
+from models.database import EmpleadoCreate, EmpleadoResponse, PaginatedResponse
 import json
+from typing import Optional
 
 router = APIRouter(prefix="/empleados", tags=["empleados"])
 
-@router.get("", response_model=list[EmpleadoResponse])
-async def obtener_empleados():
-    """Obtiene lista de todos los empleados"""
+@router.get("", response_model=PaginatedResponse)
+async def obtener_empleados(
+    nombre: Optional[str] = None,
+    include_inactive: bool = False,
+    page: int = Query(1, ge=1, description="Page number starting from 1"),
+    page_size: int = Query(10, ge=1, le=100, description="Number of items per page")
+):
+    """
+    Obtiene lista de empleados con paginación y filtros
+    
+    Parámetros:
+    - nombre: Filtro opcional por nombre o apellido (búsqueda parcial insensible a mayúsculas)
+    - include_inactive: Incluir empleados inactivos
+    - page: Número de página (comienza en 1)
+    - page_size: Cantidad de elementos por página (máx. 100)
+    """
     service = EmpleadoService()
-    return service.get_all_empleados()
+    return service.get_all_empleados(
+        nombre=nombre,
+        include_inactive=include_inactive,
+        page=page,
+        page_size=page_size
+    )
 
 @router.get("/{empleado_id}", response_model=EmpleadoResponse)
 async def obtener_empleado(empleado_id: int):
